@@ -1,0 +1,72 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: order-tracker-alerts
+    folder: Order Tracker
+    interval: 10s
+    rules:
+      - uid: order-tracker-5xx-errors
+        title: Order Tracker 5xx server errors
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              datasource:
+                type: prometheus
+                uid: prometheus
+              editorMode: code
+              expr: 'sum by (http_route, http_response_status_code) (increase(http_requests_total{http_response_status_code=~"5.."}[5m]))'
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - A
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: C
+                type: __expr__
+                uid: __expr__
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: classic_conditions
+        noDataState: NoData
+        execErrState: Error
+        annotations:
+          summary: 'Order Tracker returned HTTP {{ $labels.http_response_status_code }} on {{ $labels.http_route }}'
+          description: >-
+            The order tracker API returned {{ $value }} HTTP {{ $labels.http_response_status_code }}
+            server error(s) on endpoint {{ $labels.http_route }} over the last 5 minutes
+            (evaluation window: 5m, checked every 10s). A customer-facing request is failing
+            with a server-side error - investigate the app logs in Loki and the failing trace
+            in Tempo, then check the dashboard for the error rate.
+          dashboard_url: 'http://localhost:3001/d/order-tracker-overview?orgId=1&from=now-1h&to=now'
+        labels:
+          team: order-tracker
+          severity: critical
+        isPaused: false

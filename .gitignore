@@ -1,0 +1,20 @@
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+data/
+.env
+
+# Secrets / API keys
+incident-response/gemini-api-key.txt
+
+# Incident response runtime data (alert payloads, logs, traces, agent output)
+incident-response/alerts/
+
+# Local databases (belt and braces)
+*.db
+*.sqlite3
+
+# OS / editor noise
+.DS_Store
+Thumbs.db

@@ -1,0 +1,12 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: incident-responder
+    receivers:
+      - uid: incident-responder-webhook
+        type: webhook
+        settings:
+          httpMethod: POST
+          url: http://host.docker.internal:8001/alerts
+          maxAlerts: "0"

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Order Tracker</title>
+<style>
+  :root { font-family: system-ui, sans-serif; color: #172b3a; background: #f4f7f8; }
+  body { max-width: 850px; margin: 3rem auto; padding: 0 1rem; }
+  h1 { margin-bottom: .2rem; }
+  p { color: #536473; }
+  form, article { background: white; border: 1px solid #dce4e9; border-radius: 10px; padding: 1rem; }
+  form { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1.5rem 0; }
+  input, select, button { font: inherit; padding: .6rem; border-radius: 6px; border: 1px solid #aebec8; }
+  button { background: #175f72; color: white; border-color: #175f72; cursor: pointer; }
+  #orders { display: grid; gap: .7rem; }
+  article { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
+  article button { white-space: nowrap; }
+  #detail { min-height: 1.5rem; margin: 1rem 0; }
+  .error { color: #ac2525; }
+</style>
+<h1>Order Tracker</h1>
+<p>Create an order, then open it to check its current status.</p>
+<form id="new-order">
+  <input name="customer" placeholder="Customer" required>
+  <input name="item" placeholder="Item" required>
+  <select name="priority"><option>standard</option><option>express</option></select>
+  <button>Create order</button>
+</form>
+<div id="detail" role="status"></div>
+<div id="orders"></div>
+<script>
+const ordersEl = document.querySelector('#orders');
+const detailEl = document.querySelector('#detail');
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+async function loadOrders() {
+  const response = await fetch('/api/orders');
+  const orders = await response.json();
+  ordersEl.innerHTML = orders.map(order => `
+    <article>
+      <span><strong>${escapeHtml(order.item)}</strong> for ${escapeHtml(order.customer)}
+      · ${escapeHtml(order.priority)} · ${escapeHtml(order.status)}</span>
+      <button data-id="${escapeHtml(order.id)}">Check status</button>
+    </article>`).join('');
+}
+ordersEl.addEventListener('click', async event => {
+  const id = event.target.dataset.id;
+  if (!id) return;
+  const response = await fetch('/api/orders/' + encodeURIComponent(id));
+  if (!response.ok) {
+    detailEl.className = 'error';
+    detailEl.textContent = 'Could not check this order (' + response.status + ').';
+    return;
+  }
+  const order = await response.json();
+  detailEl.className = '';
+  detailEl.textContent = order.item + ' for ' + order.customer + ': ' + order.status
+    + (order.estimated_delivery ? ' · estimated delivery ' + order.estimated_delivery : '');
+});
+document.querySelector('#new-order').addEventListener('submit', async event => {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.target));
+  const response = await fetch('/api/orders', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+  });
+  if (response.ok) { event.target.reset(); await loadOrders(); }
+});
+loadOrders();
+</script>
+</html>
